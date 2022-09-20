@@ -42,7 +42,7 @@ export const initiateEditor = (context: vscode.ExtensionContext) => {
     layoutString: string | undefined,
     implementations: ImplementationsMetadata
   ) => {
-    if (isTelemetryEnabled) {
+    if (process.env.NODE_ENV === "production" && isTelemetryEnabled) {
       fetch("https://stately.ai/registry/api/analyze", {
         method: "POST",
         body: JSON.stringify([
