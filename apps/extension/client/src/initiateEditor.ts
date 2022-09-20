@@ -6,6 +6,7 @@ import {
   isCursorInPosition,
   resolveUriToFilePrefix,
 } from "@xstate/tools-shared";
+import fetch from "isomorphic-fetch";
 import * as path from "path";
 import * as vscode from "vscode";
 import { ColorThemeKind } from "vscode";
@@ -17,6 +18,15 @@ import { handleDefinitionUpdate } from "./handleDefinitionUpdate";
 import { handleNodeSelected } from "./handleNodeSelected";
 
 export const initiateEditor = (context: vscode.ExtensionContext) => {
+  const machineId = vscode.env.machineId;
+  let { isTelemetryEnabled } = vscode.env;
+
+  context.subscriptions.push(
+    vscode.env.onDidChangeTelemetryEnabled(
+      (enabled) => (isTelemetryEnabled = enabled)
+    )
+  );
+
   const baseUrl = getBaseUrl();
 
   let currentPanel: vscode.WebviewPanel | undefined = undefined;
@@ -32,6 +42,20 @@ export const initiateEditor = (context: vscode.ExtensionContext) => {
     layoutString: string | undefined,
     implementations: ImplementationsMetadata
   ) => {
+    if (isTelemetryEnabled) {
+      fetch("https://stately.ai/registry/api/analyze", {
+        method: "POST",
+        body: JSON.stringify([
+          {
+            event: "Opening Editor From VS Code",
+            properties: {
+              time: Math.floor(Date.now() / 1000),
+              distinct_id: machineId,
+            },
+          },
+        ]),
+      }).catch(() => {});
+    }
     const settingsTheme =
       vscode.workspace
         .getConfiguration("xstate")
